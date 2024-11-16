@@ -19,6 +19,9 @@ class _PredictionInputScreenState extends State<PredictionInputScreen> {
   final TextEditingController _bathroomsController = TextEditingController();
   final TextEditingController _storiesController = TextEditingController();
   final TextEditingController _parkingController = TextEditingController();
+  final TextEditingController _loan = TextEditingController();
+  final TextEditingController _tenure = TextEditingController();
+  final TextEditingController _interest = TextEditingController();
 
   // Boolean inputs
   bool _mainRoad = false;
@@ -38,7 +41,7 @@ class _PredictionInputScreenState extends State<PredictionInputScreen> {
 
   Future<void> _predictPrice(BuildContext context) async {
     if (!_formKey.currentState!.validate()) return;
-
+    _formKey.currentState!.save();
     // Prepare input data
     final inputData = {
       'area': double.parse(_areaController.text),
@@ -56,6 +59,9 @@ class _PredictionInputScreenState extends State<PredictionInputScreen> {
           _furnishingStatus == 'Semi-furnished' ? 1 : 0,
       'furnishingstatus_Unfurnished':
           _furnishingStatus == 'Unfurnished' ? 1 : 0,
+      'loan_amount': int.parse(_loan.text),
+      'tenure': int.parse(_tenure.text),
+      'interest_rate': double.parse(_interest.text),
     };
 
     // Send the data to the Flask API
@@ -128,6 +134,30 @@ class _PredictionInputScreenState extends State<PredictionInputScreen> {
                 _buildSwitch("Preferred Area?", _prefArea, (value) {
                   setState(() => _prefArea = value);
                 }),
+                _buildTextField(_loan, "Loan Amount (₹)", deviceWidth),
+                _buildTextField(_interest, "Interest Rate (%)", deviceWidth),
+                _buildTextField(_tenure, "Tenure (in years)", deviceWidth),
+                // // Add loan details
+                // TextFormField(
+                //   decoration:
+                //       const InputDecoration(labelText: "Loan Amount (₹)"),
+                //   keyboardType: TextInputType.number,
+                //   onSaved: (value) =>
+                //       inputData['loan_amount'] = double.parse(value!),
+                // ),
+                // TextFormField(
+                //   decoration:
+                //       const InputDecoration(labelText: "Interest Rate (%)"),
+                //   keyboardType: TextInputType.number,
+                //   onSaved: (value) =>
+                //       inputData['interest_rate'] = double.parse(value!),
+                // ),
+                // TextFormField(
+                //   decoration:
+                //       const InputDecoration(labelText: "Tenure (in years)"),
+                //   keyboardType: TextInputType.number,
+                //   onSaved: (value) => inputData['tenure'] = int.parse(value!),
+                // ),
                 DropdownButtonFormField(
                   value: _furnishingStatus,
                   items: _furnishingOptions
@@ -144,6 +174,11 @@ class _PredictionInputScreenState extends State<PredictionInputScreen> {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () => _predictPrice(context),
+                  //{                  //   if (_formKey.currentState!.validate()) {
+                  //     _formKey.currentState!.save();
+                  //     _predictPrice(context);
+                  //   }
+                  // },
                   child: const Text("Predict Price"),
                 ),
               ],
@@ -153,6 +188,8 @@ class _PredictionInputScreenState extends State<PredictionInputScreen> {
       ),
     );
   }
+
+  // _predictPrice(context)
 
   Widget _buildTextField(
       TextEditingController controller, String label, double width) {
