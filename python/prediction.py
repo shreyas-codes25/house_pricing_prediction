@@ -7,7 +7,7 @@ from flask_cors import CORS
 
 
 # Load your dataset
-df = pd.read_csv(r'C:/Users/shrey/OneDrive/Desktop/archive/Housing.csv')
+df = pd.read_csv(r'./Housing.csv')
 
 # Preprocessing: Convert categorical variables into dummy/indicator variables
 df = pd.get_dummies(df, drop_first=True)
