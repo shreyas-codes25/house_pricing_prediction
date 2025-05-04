@@ -70,6 +70,7 @@ class _PredictionInputScreenState extends State<PredictionInputScreen>
 
     try {
       final response = await http.post(
+        // Replace with your server URL
         Uri.parse('http://192.168.29.32:5000/predict'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(inputData),

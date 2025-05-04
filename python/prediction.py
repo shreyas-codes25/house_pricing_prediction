@@ -1,10 +1,9 @@
 import os
-
 from numpy import double
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask import Flask, request, jsonify # type: ignore
+from flask_cors import CORS # type: ignore
 import pandas as pd
-import xgboost as xgb
+import xgboost as xgb # type: ignore
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
@@ -99,5 +98,8 @@ def predict():
     })
 
 if __name__ == '__main__':
+    #app.run(debug=True)
+    # Run the Flask app
+    # Set the host to '0.0.0.0' to allow external access
     app.run(host='0.0.0.0', port=5000, debug=True)
 
