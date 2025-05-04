@@ -10,10 +10,10 @@ class PredictionInputScreen extends StatefulWidget {
   _PredictionInputScreenState createState() => _PredictionInputScreenState();
 }
 
-class _PredictionInputScreenState extends State<PredictionInputScreen> {
+class _PredictionInputScreenState extends State<PredictionInputScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers for input fields
   final TextEditingController _areaController = TextEditingController();
   final TextEditingController _bedroomsController = TextEditingController();
   final TextEditingController _bathroomsController = TextEditingController();
@@ -23,7 +23,6 @@ class _PredictionInputScreenState extends State<PredictionInputScreen> {
   final TextEditingController _tenure = TextEditingController();
   final TextEditingController _interest = TextEditingController();
 
-  // Boolean inputs
   bool _mainRoad = false;
   bool _guestRoom = false;
   bool _basement = false;
@@ -31,7 +30,6 @@ class _PredictionInputScreenState extends State<PredictionInputScreen> {
   bool _airConditioning = false;
   bool _prefArea = false;
 
-  // Dropdown for furnishing status
   String _furnishingStatus = 'Semi-furnished';
   final List<String> _furnishingOptions = [
     'Semi-furnished',
@@ -39,10 +37,16 @@ class _PredictionInputScreenState extends State<PredictionInputScreen> {
     'Furnished'
   ];
 
+  bool _loading = false;
+
   Future<void> _predictPrice(BuildContext context) async {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
-    // Prepare input data
+
+    setState(() {
+      _loading = true;
+    });
+
     final inputData = {
       'area': double.parse(_areaController.text),
       'bedrooms': int.parse(_bedroomsController.text),
@@ -59,29 +63,40 @@ class _PredictionInputScreenState extends State<PredictionInputScreen> {
           _furnishingStatus == 'Semi-furnished' ? 1 : 0,
       'furnishingstatus_Unfurnished':
           _furnishingStatus == 'Unfurnished' ? 1 : 0,
-      'loan_amount': int.parse(_loan.text),
+      'loan_amount': double.parse(_loan.text),
       'tenure': int.parse(_tenure.text),
       'interest_rate': double.parse(_interest.text),
     };
 
-    // Send the data to the Flask API
     try {
       final response = await http.post(
-        Uri.parse('http://127.0.0.1:5000/predict'),
+        Uri.parse('http://192.168.29.32:5000/predict'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(inputData),
       );
 
-      if (response.statusCode == 200) {
-        final prediction = jsonDecode(response.body)['predicted_price'];
+      setState(() {
+        _loading = false;
+      });
 
-        // Navigate to result screen
+      if (response.statusCode == 200) {
+        final double prediction = jsonDecode(response.body)['predicted_price'];
+        final incomeClass = jsonDecode(response.body)['income_class'];
+
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => PredictionResultScreen(
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 500),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              final tween = Tween(begin: 0.0, end: 1.0);
+              return FadeTransition(
+                  opacity: animation.drive(tween), child: child);
+            },
+            pageBuilder: (_, __, ___) => PredictionResultScreen(
               predictedPrice: prediction,
               details: inputData,
+              incomeClass: incomeClass,
             ),
           ),
         );
@@ -89,131 +104,171 @@ class _PredictionInputScreenState extends State<PredictionInputScreen> {
         throw Exception("Failed to predict price");
       }
     } catch (e) {
+      setState(() {
+        _loading = false;
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: ${e.toString()}")),
       );
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final deviceWidth = MediaQuery.of(context).size.width;
-
-    return Scaffold(
-      appBar: AppBar(title: const Text("Housing Price Predictor")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                _buildTextField(_areaController, "Area (sq. ft.)", deviceWidth),
-                _buildTextField(_bedroomsController, "Bedrooms", deviceWidth),
-                _buildTextField(_bathroomsController, "Bathrooms", deviceWidth),
-                _buildTextField(_storiesController, "Stories", deviceWidth),
-                _buildTextField(
-                    _parkingController, "Parking Spaces", deviceWidth),
-                _buildSwitch("Located on Main Road?", _mainRoad, (value) {
-                  setState(() => _mainRoad = value);
-                }),
-                _buildSwitch("Guest Room Available?", _guestRoom, (value) {
-                  setState(() => _guestRoom = value);
-                }),
-                _buildSwitch("Has Basement?", _basement, (value) {
-                  setState(() => _basement = value);
-                }),
-                _buildSwitch("Has Hot Water Heating?", _hotWaterHeating,
-                    (value) {
-                  setState(() => _hotWaterHeating = value);
-                }),
-                _buildSwitch("Has Air Conditioning?", _airConditioning,
-                    (value) {
-                  setState(() => _airConditioning = value);
-                }),
-                _buildSwitch("Preferred Area?", _prefArea, (value) {
-                  setState(() => _prefArea = value);
-                }),
-                _buildTextField(_loan, "Loan Amount (₹)", deviceWidth),
-                _buildTextField(_interest, "Interest Rate (%)", deviceWidth),
-                _buildTextField(_tenure, "Tenure (in years)", deviceWidth),
-                // // Add loan details
-                // TextFormField(
-                //   decoration:
-                //       const InputDecoration(labelText: "Loan Amount (₹)"),
-                //   keyboardType: TextInputType.number,
-                //   onSaved: (value) =>
-                //       inputData['loan_amount'] = double.parse(value!),
-                // ),
-                // TextFormField(
-                //   decoration:
-                //       const InputDecoration(labelText: "Interest Rate (%)"),
-                //   keyboardType: TextInputType.number,
-                //   onSaved: (value) =>
-                //       inputData['interest_rate'] = double.parse(value!),
-                // ),
-                // TextFormField(
-                //   decoration:
-                //       const InputDecoration(labelText: "Tenure (in years)"),
-                //   keyboardType: TextInputType.number,
-                //   onSaved: (value) => inputData['tenure'] = int.parse(value!),
-                // ),
-                DropdownButtonFormField(
-                  value: _furnishingStatus,
-                  items: _furnishingOptions
-                      .map((status) => DropdownMenuItem(
-                            value: status,
-                            child: Text(status),
-                          ))
-                      .toList(),
-                  onChanged: (value) =>
-                      setState(() => _furnishingStatus = value!),
-                  decoration:
-                      const InputDecoration(labelText: "Furnishing Status"),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () => _predictPrice(context),
-                  //{                  //   if (_formKey.currentState!.validate()) {
-                  //     _formKey.currentState!.save();
-                  //     _predictPrice(context);
-                  //   }
-                  // },
-                  child: const Text("Predict Price"),
-                ),
-              ],
-            ),
+  Widget _buildTextField(TextEditingController controller, String label) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 400),
+      child: Padding(
+        key: ValueKey(label),
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: TextFormField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: label,
+            filled: true,
+            fillColor: Colors.grey.shade100,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
+          validator: (value) => value!.isEmpty ? "Enter $label" : null,
         ),
-      ),
-    );
-  }
-
-  // _predictPrice(context)
-
-  Widget _buildTextField(
-      TextEditingController controller, String label, double width) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: TextInputType.number,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-        ),
-        validator: (value) => value!.isEmpty ? "Enter $label" : null,
       ),
     );
   }
 
   Widget _buildSwitch(String label, bool value, Function(bool) onChanged) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label),
-        Switch(value: value, onChanged: onChanged),
-      ],
+    return SwitchListTile(
+      title: Text(label),
+      value: value,
+      onChanged: (val) => setState(() => onChanged(val)),
+      activeColor: Colors.deepPurple,
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return AnimatedOpacity(
+      opacity: 1.0,
+      duration: const Duration(milliseconds: 500),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
+        child: Row(
+          children: [
+            Icon(Icons.label_important_rounded, color: Colors.deepPurple),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("🏠 Housing Price Predictor"),
+        backgroundColor: Colors.deepPurple,
+        elevation: 0,
+      ),
+      body: Container(
+        color: Colors.grey.shade50,
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Card(
+                elevation: 8,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        _buildSectionTitle("Property Info"),
+                        _buildTextField(_areaController, "Area (sq. ft.)"),
+                        _buildTextField(_bedroomsController, "Bedrooms"),
+                        _buildTextField(_bathroomsController, "Bathrooms"),
+                        _buildTextField(_storiesController, "Stories"),
+                        _buildTextField(_parkingController, "Parking Spaces"),
+                        const Divider(),
+                        _buildSectionTitle("Amenities"),
+                        _buildSwitch("Located on Main Road?", _mainRoad,
+                            (val) => _mainRoad = val),
+                        _buildSwitch("Guest Room Available?", _guestRoom,
+                            (val) => _guestRoom = val),
+                        _buildSwitch("Has Basement?", _basement,
+                            (val) => _basement = val),
+                        _buildSwitch("Hot Water Heating?", _hotWaterHeating,
+                            (val) => _hotWaterHeating = val),
+                        _buildSwitch("Air Conditioning?", _airConditioning,
+                            (val) => _airConditioning = val),
+                        _buildSwitch("Preferred Area?", _prefArea,
+                            (val) => _prefArea = val),
+                        const Divider(),
+                        _buildSectionTitle("Loan Details"),
+                        _buildTextField(_loan, "Loan Amount (₹)"),
+                        _buildTextField(_interest, "Interest Rate (%)"),
+                        _buildTextField(_tenure, "Tenure (in years)"),
+                        const Divider(),
+                        _buildSectionTitle("Furnishing"),
+                        DropdownButtonFormField<String>(
+                          value: _furnishingStatus,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                          items: _furnishingOptions.map((option) {
+                            return DropdownMenuItem(
+                                value: option, child: Text(option));
+                          }).toList(),
+                          onChanged: (value) =>
+                              setState(() => _furnishingStatus = value!),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton.icon(
+                          onPressed:
+                              _loading ? null : () => _predictPrice(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepPurple,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 32, vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          icon: const Icon(
+                            Icons.calculate,
+                            color: Colors.white,
+                          ),
+                          label: const Text(
+                            "Predict Price",
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (_loading)
+              Container(
+                color: Colors.black.withOpacity(0.5),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.deepPurple,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "E:\\android studio rewamp\\flutter\\packages\\flutter_tools\\gradle\\src\\main\\groovy\\CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "E:\\sdk\\cmake\\3.22.1\\bin\\ninja.exe",
+      "-C",
+      "E:\\github project\\house_pricing_prediction\\android\\app\\.cxx\\Debug\\4j3g5g3b\\armeabi-v7a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "E:\\sdk\\cmake\\3.22.1\\bin\\ninja.exe",
+    "-C",
+    "E:\\github project\\house_pricing_prediction\\android\\app\\.cxx\\Debug\\4j3g5g3b\\armeabi-v7a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}

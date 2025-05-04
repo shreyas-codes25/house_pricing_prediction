@@ -1,4 +1,6 @@
 import os
+
+from numpy import double
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
@@ -45,6 +47,24 @@ else:
 app = Flask(__name__)
 CORS(app, resources={r"/predict": {"origins": "*"}})
 
+# Income classification function
+def classify_income(price):
+    if price < 1000000:
+        return "Very Low"
+    elif 1000000 <= price < 2000000:
+        return "Low"
+    elif 2000000 <= price < 3500000:
+        return "Lower-Middle"
+    elif 3500000 <= price < 5000000:
+        return "Middle"
+    elif 5000000 <= price < 7000000:
+        return "Upper-Middle"
+    elif 7000000 <= price < 10000000:
+        return "High"
+    else:
+        return "Very High"
+
+
 @app.route('/predict', methods=['POST'])
 def predict():
     data = request.json
@@ -55,23 +75,29 @@ def predict():
     for col in missing_cols:
         input_data[col] = 0
     input_data = input_data[X.columns]
-    
+
     # Scale the input data using the loaded scaler
     input_scaled = scaler.transform(input_data)
     prediction = model.predict(input_scaled)[0]
-    
+
+    # Income class based on predicted price
+    income_class = classify_income(prediction)
+
     # Calculate confidence interval
     residuals = y - model.predict(scaler.transform(X))
     residual_std = residuals.std()
     confidence_interval = 1.96 * residual_std
     confidence_percentage = (1 - (confidence_interval / prediction)) * 100
-    
+
     print(confidence_percentage)
+
     return jsonify({
-        "predicted_price": float(prediction),
+        "predicted_price": double(prediction),
+        "income_class": income_class,
         "confidence_interval": f"±{confidence_interval:.2f}",
         "confidence_percentage": f"{confidence_percentage:.2f}%"
     })
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
+
